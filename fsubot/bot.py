@@ -143,9 +143,11 @@ class FSUBot(object):
         :param relative_path: accepts a relative path and makes it
             absolute with respect to the script's location
         """
-        return str(os.path.join(
-            os.path.abspath(os.path.dirname(sys.argv[0]))),
-            relative_path
+        return str(
+            os.path.join(
+                os.path.abspath(os.path.dirname(sys.argv[0])),
+                relative_path
+            )
         )
 
 
