@@ -6,34 +6,51 @@ import smtplib
 import sys
 from datetime import datetime as dt
 
+import selenium
 from lxml import html
 from selenium import webdriver
 from selenium.webdriver.common.keys import Keys
 
 
-TIME_FORMAT = r'%Y-%m-%d-%H-%M-%S'
-
-
 class FSUBot(object):
-    def __init__(self, start_page_url, fsuid='', fsupw='', auto_login=True, browser='chrome'):
+    TIME_FORMAT = r'%Y-%m-%d-%H-%M-%S'
+    FSU_LOGIN_URL = 'https://cas.fsu.edu/cas/login?service=https://my.fsu.edu'
+
+    def __init__(self, fsuid='', fsupw='', command_line=False, auto_login=True, browser={'title': 'firefox', 'path': './'}, description='Bot made using FSU Bot library.'):
         self.SLEEP_TIME = 1.5
 
-        self.fsuid = input('FSU-ID: ') if not fsuid else fsuid
-        self.fsupw = getpass.getpass() if not fsupw else fsupw
+        if command_line or (not fsuid and not fsupw):
+            parser = FSUBot.ArgParser(description=description)
+            self._args = parser.parse()
 
-        if browser.lower() == 'firefox':
-            self.dr = webdriver.Firefox()
+        if hasattr(self, 'args') and command_line:
+            self.fsuid = args.fsuid
+        elif fsuid:
+            self.fsuid = fsuid
         else:
-            self.dr = webdriver.Chrome('./chromedriver')
+            self.fsuid = input('FSU-ID: ')
+
+        if hasattr(self, 'args') and command_line:
+            self.fsupw = args.fsupw
+        elif fsupw:
+            self.fsupw = fsupw
+        else:
+            self.fsupw = getpass.getpass()
+
+        try:
+            if browser['title'].lower() == 'firefox':
+                self.dr = webdriver.Firefox(browser['path'])
+            elif browser['title'].lower() == 'chrome':
+                self.dr = webdriver.Chrome(browser['path'])
+        except (AttributeError, selenium.common.exceptions.WebDriverException, AttributeError) as e:
+            print("ERROR \"{}\": Likely no driver was found.".format(str(e).strip()))
+            sys.exit()
 
         if auto_login:
             self.my_fsu_login()
-        self.dr.get(start_page_url)
 
-    def my_fsu_login(self):
-        FSU_LOGIN_URL = 'https://cas.fsu.edu/cas/login?service=https://my.fsu.edu'
-
-        self.dr.get(FSU_LOGIN_URL)
+    def login_to_fsu(self):
+        self.dr.get(FSUBot.FSU_LOGIN_URL)
         username = self.dr.find_elements_by_class_name("loginInput")[0]
         password = self.dr.find_elements_by_class_name("loginInput")[1]
 
@@ -102,6 +119,27 @@ class FSUBot(object):
         except:
             return False
 
+    class ArgParser(argparse.ArgumentParser):
+        def __init__(self, *args, **kwargs):
+            super().__init__(self, *args, **kwargs)
+            self.add_argument('-f', '--fsu-id',
+                              help='Username for the student\'s MyFSU account.',
+                              required=False)
+            self.add_argument('-p', '--password',
+                              help='Password for the student\'s MyFSU account.',
+                              required=False)
+
+        def parse(self, *args, **kwargs):
+            args = self.parse_args(*args, **kwargs)
+
+            if args.fsu_id and not args.password:
+                parser.error('MyFSU ID given, but no password specified.')
+            elif not args.fsu_id and args.password:
+                parser.error('MyFSU password given, but no ID specified.')
+
+            return args
+
+
 
 def _main(nav_list_json=None, main_loop=None):
     """
@@ -109,28 +147,10 @@ def _main(nav_list_json=None, main_loop=None):
     :type nav_list: list
 
     """
-    STUDY_ROOMS_URL = 'https://www.lib.fsu.edu/dirac-study-rooms'
-
-    bot_description = 'StudyRoomBot'
-
-    parser = argparse.ArgumentParser(description=vindicta_description)
-    parser.add_argument('-f', '--fsu-id',
-                        help='Username for the student\'s MyFSU account.',
-                        required=False)
-    parser.add_argument('-p', '--password',
-                        help='Password for the student\'s MyFSU account.',
-                        required=False)
-    args = parser.parse_args()
-
-    if args.fsu_id and not args.password:
-        parser.error('MyFSU ID given, but no password specified.')
-    elif not args.fsu_id and args.password:
-        parser.error('MyFSU password given, but no ID specified.')
-
-    fsu_dr = FSUBot(args.fsu_id, args.password, STUDY_ROOMS_URL)
+    fsu_dr = FSUBot(browser={'title':'chrome', 'path':'./chromedriver'})
     fsu_dr.login_to_fsu()
-    fsu_dr.navigate(filename=nav_list_json)
-    fsu_dr.main_loop()
+    #fsu_dr.navigate(filename=nav_list_json)
+    #fsu_dr.main_loop()
 
 
 if __name__ == "__main__":

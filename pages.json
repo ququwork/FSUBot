@@ -1,43 +1,53 @@
-[
-    {
-        "title": "",
-        "iframe": false,
-        "xpath": "",
-        "css-selector": ""
-    },
+{
+    "setup": [
+        {
+            "title": "",
+            "iframe": false,
+            "xpath": "",
+            "css-selector": ""
+        },
 
-    {
-        "title": "",
-        "iframe": false,
-        "xpath": "",
-        "css-selector": ""
-    },
+        {
+            "title": "",
+            "iframe": false,
+            "xpath": "",
+            "css-selector": ""
+        },
 
-    {
-        "title": "",
-        "iframe": false,
-        "xpath": "",
-        "css-selector": ""
-    },
+        {
+            "title": "",
+            "iframe": false,
+            "xpath": "",
+            "css-selector": ""
+        },
 
-    {
-        "title": "",
-        "iframe": false,
-        "xpath": "",
-        "css-selector": ""
-    },
+        {
+            "title": "",
+            "iframe": false,
+            "xpath": "",
+            "css-selector": ""
+        },
 
-    {
-        "title": "",
-        "iframe": false,
-        "xpath": "",
-        "css-selector": ""
-    },
+        {
+            "title": "",
+            "iframe": false,
+            "xpath": "",
+            "css-selector": ""
+        },
 
-    {
-        "title": "",
-        "iframe": false,
-        "xpath": "",
-        "css-selector": ""
-    }
-]
+        {
+            "title": "",
+            "iframe": false,
+            "xpath": "",
+            "css-selector": ""
+        }
+    ],
+    "main_loop": [
+        {
+            "title": "",
+            "iframe": false,
+            "xpath": "",
+            "css-selector": ""
+        }
+    ]
+}
