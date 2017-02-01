@@ -1,11 +1,9 @@
-from distutils.core import setup, find_packages
-from setuptools.command.test import test as TestCommand
+from setuptools import setup
 
-with open('README.rst', 'r', 'utf-8') as f:
+with open('README.rst', 'r') as f:
     readme = f.read()
-with open('VERSION.rst', 'r', 'utf-8') as f:
+with open('VERSION.rst', 'r') as f:
     version = f.read().strip()
-
 
 setup(
     name='fsubot',
@@ -16,7 +14,7 @@ setup(
     author_email='pianka@eml.cc',
     url = 'https://github.com/seanpianka/fsubot',
     download_url = 'https://github.com/seanpianka/FSUBot/tarball/{}'.format(version),
-    packages=find_packages(exclude=['tests']),
+    packages=['fsubot'],
     install_requires=[
         "selenium==3.0.2",
         "lxml==3.7.2",
@@ -26,7 +24,6 @@ setup(
     keywords = ['florida', 'state', 'university', 'fsu', 'bot'],
     zip_safe=False,
     include_package_data=True,
-    copyright = 'Copyright (c) 2017 Sean Pianka',
     classifiers=(
         'Development Status :: 5 - Production/Stable',
         'Operating System :: Unix',
@@ -35,7 +32,7 @@ setup(
         'Natural Language :: English',
         'License :: OSI Approved :: Apache Software License',
         'Topic :: Education',
-        'Topic :: Utilities'
+        'Topic :: Utilities',
         'Programming Language :: Python',
         'Programming Language :: Python :: 3',
         'Programming Language :: Python :: 3.3',
