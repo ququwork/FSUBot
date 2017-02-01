@@ -1,14 +1,14 @@
-import argparse
 import getpass
 import json
-import time
-import smtplib
 import sys
+import time
 from datetime import datetime as dt
 
+import argparse
 import selenium
 from lxml import html
 from selenium import webdriver
+from selenium.webdriver.firefox.firebox_binary import FirefoxBinary
 from selenium.webdriver.common.keys import Keys
 
 
@@ -39,7 +39,8 @@ class FSUBot(object):
 
         try:
             if browser['title'].lower() == 'firefox':
-                self.dr = webdriver.Firefox(browser['path'])
+                binary = FirefoxBinary(browser['path'])
+                self.dr = webdriver.Firefox(firefox_binary=binary)
             elif browser['title'].lower() == 'chrome':
                 self.dr = webdriver.Chrome(browser['path'])
         except (AttributeError, selenium.common.exceptions.WebDriverException, AttributeError) as e:
