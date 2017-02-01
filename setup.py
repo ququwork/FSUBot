@@ -24,7 +24,7 @@ setup(
     keywords = ['florida', 'state', 'university', 'fsu', 'bot'],
     zip_safe=False,
     include_package_data=True,
-    classifiers=(
+    classifiers=[
         'Development Status :: 5 - Production/Stable',
         'Operating System :: Unix',
         'Operating System :: MacOS',
@@ -39,6 +39,6 @@ setup(
         'Programming Language :: Python :: 3.4',
         'Programming Language :: Python :: 3.5',
         'Programming Language :: Python :: 3.6',
-    ),
+    ],
 )
 
