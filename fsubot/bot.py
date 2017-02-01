@@ -92,6 +92,7 @@ class FSUBot(object):
                     self._focus_iframe(**page)
                 else:
                     self._navigate(**page)
+                time.sleep(self.SLEEP_TIME * 2)
         else:
             raise RuntimeError('No JSON list of navigation points provided.')
 
