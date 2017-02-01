@@ -1,5 +1,6 @@
 import getpass
 import json
+import os
 import sys
 import time
 from datetime import datetime as dt
@@ -39,10 +40,14 @@ class FSUBot(object):
 
         try:
             if browser['title'].lower() == 'firefox':
-                binary = FirefoxBinary(browser['path'])
+                binary = FirefoxBinary(
+                    FSUBot._make_path_relative(browser['path'])
+                )
                 self.dr = webdriver.Firefox(firefox_binary=binary)
             elif browser['title'].lower() == 'chrome':
-                self.dr = webdriver.Chrome(browser['path'])
+                self.dr = webdriver.Chrome(
+                    FSUBot._make_path_relative(browser['path'])
+                )
         except (AttributeError, selenium.common.exceptions.WebDriverException, AttributeError) as e:
             print("ERROR \"{}\": Likely no driver was found.".format(str(e).strip()))
             sys.exit()
@@ -67,14 +72,26 @@ class FSUBot(object):
         self.dr.find_elements_by_css_selector(login_button)[0].click()
         time.sleep(self.SLEEP_TIME * 2)
 
-    def navigate(self, filename=None, jsonlist=None):
+    def navigate(self, list_key, filename=None, jsonlist=None):
+        """
+        :param list_key: key for list containing pages within json
+        """
         if filename:
+            filename = FSUBot._make_path_relative(filename)
             with open(filename) as f:
                 json_list = json.load(f)
 
         if json_list:
-            for item in json_list:
-                self._navigate(**item)
+            for item in json_list[list_key]:
+                page = {
+                    'title': item['title'],
+                    'xpath': item['xpath'],
+                    'css_selector': item['css_selector']
+                }
+                if item['iframe']:
+                    self._focus_iframe(**page)
+                else:
+                    self._navigate(**page)
         else:
             raise RuntimeError('No JSON list of navigation points provided.')
 
@@ -120,6 +137,18 @@ class FSUBot(object):
         except:
             return False
 
+    @staticmethod
+    def _make_path_relative(relative_path):
+        """
+        :param relative_path: accepts a relative path and makes it
+            absolute with respect to the script's location
+        """
+        return str(os.path.join(
+            os.path.abspath(os.path.dirname(sys.argv[0]))),
+            relative_path
+        )
+
+
     class ArgParser(argparse.ArgumentParser):
         def __init__(self, *args, **kwargs):
             super().__init__(*args, **kwargs)
@@ -150,8 +179,6 @@ def _main(nav_list_json=None, main_loop=None):
     """
     fsu_dr = FSUBot(browser={'title':'chrome', 'path':'./chromedriver'})
     fsu_dr.login_to_fsu()
-    #fsu_dr.navigate(filename=nav_list_json)
-    #fsu_dr.main_loop()
 
 
 if __name__ == "__main__":

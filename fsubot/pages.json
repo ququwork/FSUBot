@@ -4,42 +4,42 @@
             "title": "",
             "iframe": false,
             "xpath": "",
-            "css-selector": ""
+            "css_selector": ""
         },
 
         {
             "title": "",
             "iframe": false,
             "xpath": "",
-            "css-selector": ""
+            "css_selector": ""
         },
 
         {
             "title": "",
             "iframe": false,
             "xpath": "",
-            "css-selector": ""
+            "css_selector": ""
         },
 
         {
             "title": "",
             "iframe": false,
             "xpath": "",
-            "css-selector": ""
+            "css_selector": ""
         },
 
         {
             "title": "",
             "iframe": false,
             "xpath": "",
-            "css-selector": ""
+            "css_selector": ""
         },
 
         {
             "title": "",
             "iframe": false,
             "xpath": "",
-            "css-selector": ""
+            "css_selector": ""
         }
     ],
     "main_loop": [
@@ -47,7 +47,7 @@
             "title": "",
             "iframe": false,
             "xpath": "",
-            "css-selector": ""
+            "css_selector": ""
         }
     ]
 }
