@@ -3,8 +3,9 @@ from setuptools.command.test import test as TestCommand
 
 with open('README.rst', 'r', 'utf-8') as f:
     readme = f.read()
+with open('VERSION.rst', 'r', 'utf-8') as f:
+    version = f.read().strip()
 
-version = "0.1.0"
 
 setup(
     name='fsubot',
@@ -14,7 +15,7 @@ setup(
     author='Sean Pianka',
     author_email='pianka@eml.cc',
     url = 'https://github.com/seanpianka/fsubot',
-    download_url = 'https://github.com/seanpianka//tarball/{}'.format(version),
+    download_url = 'https://github.com/seanpianka/FSUBot/tarball/{}'.format(version),
     packages=find_packages(exclude=['tests']),
     install_requires=[
         "selenium==3.0.2",
