@@ -8,7 +8,7 @@ import argparse
 import selenium
 from lxml import html
 from selenium import webdriver
-from selenium.webdriver.firefox.firebox_binary import FirefoxBinary
+from selenium.webdriver.firefox.firefox_binary import FirefoxBinary
 from selenium.webdriver.common.keys import Keys
 
 
@@ -16,23 +16,23 @@ class FSUBot(object):
     TIME_FORMAT = r'%Y-%m-%d-%H-%M-%S'
     FSU_LOGIN_URL = 'https://cas.fsu.edu/cas/login?service=https://my.fsu.edu'
 
-    def __init__(self, fsuid='', fsupw='', command_line=False, auto_login=True, browser={'title': 'firefox', 'path': './'}, description='Bot made using FSU Bot library.'):
+    def __init__(self, fsuid=None, fsupw=None, cli_args=False, auto_login=True, browser={'title': 'firefox', 'path': './'}, description='Bot made using FSU Bot library.'):
         self.SLEEP_TIME = 1.5
 
-        if command_line or (not fsuid and not fsupw):
+        if cli_args or (not fsuid and not fsupw):
             parser = FSUBot.ArgParser(description=description)
             self._args = parser.parse()
 
-        if hasattr(self, 'args') and command_line:
-            self.fsuid = args.fsuid
-        elif fsuid:
+        if cli_args and hasattr(self, '_args') and self._args.fsuid:
+            self.fsuid = self._args.fsuid
+        elif isinstance(fsuid, str):
             self.fsuid = fsuid
         else:
             self.fsuid = input('FSU-ID: ')
 
-        if hasattr(self, 'args') and command_line:
-            self.fsupw = args.fsupw
-        elif fsupw:
+        if cli_args and hasattr(self, '_args') and self._args.fsupw:
+            self.fsupw = self._args.fsupw
+        elif isinstance(fsupw, str):
             self.fsupw = fsupw
         else:
             self.fsupw = getpass.getpass()
@@ -48,7 +48,7 @@ class FSUBot(object):
             sys.exit()
 
         if auto_login:
-            self.my_fsu_login()
+            self.login_to_fsu()
 
     def login_to_fsu(self):
         self.dr.get(FSUBot.FSU_LOGIN_URL)
@@ -122,20 +122,20 @@ class FSUBot(object):
 
     class ArgParser(argparse.ArgumentParser):
         def __init__(self, *args, **kwargs):
-            super().__init__(self, *args, **kwargs)
-            self.add_argument('-f', '--fsu-id',
+            super().__init__(*args, **kwargs)
+            self.add_argument('-f', '--fsu-id', dest="fsuid",
                               help='Username for the student\'s MyFSU account.',
                               required=False)
-            self.add_argument('-p', '--password',
+            self.add_argument('-p', '--password', dest="fsupw",
                               help='Password for the student\'s MyFSU account.',
                               required=False)
 
         def parse(self, *args, **kwargs):
             args = self.parse_args(*args, **kwargs)
 
-            if args.fsu_id and not args.password:
+            if args.fsuid and not args.fsupw:
                 parser.error('MyFSU ID given, but no password specified.')
-            elif not args.fsu_id and args.password:
+            elif not args.fsuid and args.fsupw:
                 parser.error('MyFSU password given, but no ID specified.')
 
             return args
