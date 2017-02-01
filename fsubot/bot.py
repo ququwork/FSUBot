@@ -72,17 +72,21 @@ class FSUBot(object):
         self.dr.find_elements_by_css_selector(login_button)[0].click()
         time.sleep(self.SLEEP_TIME * 2)
 
-    def navigate(self, list_key, filename=None, jsonlist=None):
+    def navigate(self, filename=None, list_key=None, json_list=None):
         """
+        :filename: relative to script filename of json file containing
+            json_list (requires list_key)
+        :param json_list: list of pre-defined format page dictionaries
+            containing a title and either xpath or a css_selector
         :param list_key: key for list containing pages within json
         """
-        if filename:
+        if filename and list_key:
             filename = FSUBot._make_path_relative(filename)
             with open(filename) as f:
-                json_list = json.load(f)
+                json_list = json.load(f)[list_key]
 
-        if json_list:
-            for item in json_list[list_key]:
+        if isinstance(json_list, list):
+            for item in json_list:
                 page = {
                     'title': item['title'],
                     'xpath': item['xpath'],
