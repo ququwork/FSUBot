@@ -17,7 +17,7 @@ class FSUBot(object):
     TIME_FORMAT = r'%Y-%m-%d-%H-%M-%S'
     FSU_LOGIN_URL = 'https://cas.fsu.edu/cas/login?service=https://my.fsu.edu'
 
-    def __init__(self, fsuid=None, fsupw=None, cli_args=False, auto_login=True, browser={'title': 'firefox', 'path': './'}, description='Bot made using FSU Bot library.'):
+    def __init__(self, fsuid=None, fsupw=None, cli_args=False, auto_login=True, browser={'title': 'firefox', 'path': './', 'profile': None}, description='Bot made using FSU Bot library.'):
         self.SLEEP_TIME = 1.5
 
         if cli_args or (not fsuid and not fsupw):
@@ -43,11 +43,23 @@ class FSUBot(object):
                 binary = FirefoxBinary(
                     FSUBot._make_path_relative(browser['path'])
                 )
-                self.dr = webdriver.Firefox(firefox_binary=binary)
+                if browser['profile']:
+                    self.dr = webdriver.Firefox(
+                        browser['profile'],
+                        firefox_binary=binary
+                    )
+                else:
+                    self.dr = webdriver.Firefox(firefox_binary=binary)
             elif browser['title'].lower() == 'chrome':
-                self.dr = webdriver.Chrome(
-                    FSUBot._make_path_relative(browser['path'])
-                )
+                if browser['profile']:
+                    self.dr = webdriver.Chrome(
+                        browser['profile'],
+                        FSUBot._make_path_relative(browser['path'])
+                    )
+                else:
+                    self.dr = webdriver.Chrome(
+                        FSUBot._make_path_relative(browser['path'])
+                    )
         except (AttributeError, selenium.common.exceptions.WebDriverException, AttributeError) as e:
             print("ERROR \"{}\": Likely no driver was found.".format(str(e).strip()))
             sys.exit()
