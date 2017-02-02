@@ -18,7 +18,6 @@ class FSUBot(object):
 
     def __init__(self, driver=None, fsuid=None, fsupw=None, cli_args=False, auto_login=True, browser={'title': 'firefox', 'path': './'}, description='Bot made using FSU Bot library.'):
         self.SLEEP_TIME = 1.5
-        self.wait = ui.WebDriverWait(self.dr, 10)
 
         if cli_args or (not fsuid and not fsupw):
             parser = FSUBot.ArgParser(description=description)
@@ -54,6 +53,8 @@ class FSUBot(object):
                 sys.exit()
         else:
             self.dr = driver
+
+        self.wait = ui.WebDriverWait(self.dr, 10)
 
         if auto_login:
             self.login_to_fsu()
