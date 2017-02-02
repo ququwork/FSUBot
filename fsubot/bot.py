@@ -3,11 +3,10 @@ import json
 import os
 import sys
 import time
-from datetime import datetime as dt
 
 import argparse
 import selenium
-from lxml import html
+import selenium.webdriver.support.ui as ui
 from selenium import webdriver
 from selenium.webdriver.firefox.firefox_binary import FirefoxBinary
 from selenium.webdriver.common.keys import Keys
@@ -19,6 +18,7 @@ class FSUBot(object):
 
     def __init__(self, driver=None, fsuid=None, fsupw=None, cli_args=False, auto_login=True, browser={'title': 'firefox', 'path': './'}, description='Bot made using FSU Bot library.'):
         self.SLEEP_TIME = 1.5
+        self.wait = ui.WebDriverWait(self.dr, 10)
 
         if cli_args or (not fsuid and not fsupw):
             parser = FSUBot.ArgParser(description=description)
@@ -60,20 +60,22 @@ class FSUBot(object):
 
     def login_to_fsu(self):
         self.dr.get(FSUBot.FSU_LOGIN_URL)
+        self.wait.until(lambda driver: driver.find_element_by_xpath(
+            '//*[@id="fm2"]/table/tbody/tr[2]/td[3]/input'
+        ))
+
+        print("Entering login credentials...")
         username = self.dr.find_elements_by_class_name("loginInput")[0]
         password = self.dr.find_elements_by_class_name("loginInput")[1]
-
-        time.sleep(self.SLEEP_TIME)
-        print("Entering login credentials...")
-
         username.send_keys(self.fsuid)
         password.send_keys(self.fsupw)
-        time.sleep(self.SLEEP_TIME)
 
         print("Attempting to login...")
         login_button = '#fm2 > table > tbody > tr:nth-child(2) > td:nth-child(6) > input'
         self.dr.find_elements_by_css_selector(login_button)[0].click()
-        time.sleep(self.SLEEP_TIME * 2)
+        self.wait.until(lambda driver: driver.find_element_by_xpath(
+            '//*[@id="portlet-wrapper-stu_myCourses_WAR_stu_myCourses"]/div[1]/div[1]'
+        ))
 
     def navigate(self, filename=None, list_key=None, json_list=None):
         """
@@ -99,12 +101,11 @@ class FSUBot(object):
                     self._focus_iframe(**page)
                 else:
                     self._navigate(**page)
-                time.sleep(self.SLEEP_TIME * 2)
+                time.sleep(self.SLEEP_TIME)
         else:
             raise RuntimeError('No JSON list of navigation points provided.')
 
     def _navigate(self, title=None, xpath=None, css_selector=None):
-        time.sleep(self.SLEEP_TIME * 2)
         if title:
             print("Navigating to " + title + "...")
 
@@ -128,8 +129,8 @@ class FSUBot(object):
         elif css_selector:
             frame = self.dr.find_elements_by_css_selector(css_selector)[0]
         self.dr.switch_to.frame(frame)
-        print("Frame-switch succeeded.")
-        time.sleep(self.SLEEP_TIME)
+        if title:
+            print("Frame-switch succeeded.")
 
 
     def main_loop(self):
