@@ -124,7 +124,7 @@ class FSUBot(object):
         self.vprint("Successfully logged into MyFSU.")
 
     @selenium_safe_run
-    def navigate(self, filename=None, list_key=None, json_list=None):
+    def click_list(self, filename=None, list_key=None, json_list=None):
         """
         :filename: relative to script filename of json file containing
             json_list (requires list_key)
@@ -147,24 +147,24 @@ class FSUBot(object):
                 if item['iframe']:
                     self._focus_iframe(**page)
                 else:
-                    self._navigate(**page)
+                    self._click(**page)
                 time.sleep(self.SLEEP_TIME)
         else:
-            raise RuntimeError('No JSON list of navigation points provided.')
+            raise RuntimeError('No JSON list of elements provided.')
 
     @selenium_safe_run
-    def _navigate(self, title=None, xpath=None, css_selector=None):
-        if title: self.vprint("Navigating to " + title + "...")
+    def _click(self, title=None, xpath=None, css_selector=None):
+        if title: self.vprint("Locating " + title + "...")
 
         if xpath:
             elem = self.dr.find_elements_by_xpath(xpath)[0]
         elif css_selector:
             elem = self.dr.find_elements_by_css_selector(css_selector)[0]
         else:
-            raise Exception("Unable to navigate without xpath or " \
+            raise Exception("Unable to locate element without xpath or " \
                             "css selector.")
         elem.click()
-        self.vprint("Navigation succeeded.")
+        self.vprint("Click succeeded.")
 
     @selenium_safe_run
     def _focus_iframe(self, title, xpath=None, css_selector=None):
