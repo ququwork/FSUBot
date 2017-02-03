@@ -194,6 +194,7 @@ class FSUBot(object):
                 os.path.abspath(os.path.dirname(sys.argv[0])),
                 relative_path
             )
+        )
 
     @property
     def page_source(self):
