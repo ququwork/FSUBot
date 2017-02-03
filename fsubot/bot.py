@@ -10,74 +10,105 @@ import selenium.webdriver.support.ui as ui
 from selenium import webdriver
 from selenium.webdriver.firefox.firefox_binary import FirefoxBinary
 from selenium.webdriver.common.keys import Keys
+from selenium.common.exceptions import WebDriverException
 
+
+def selenium_safe_run(func):
+    """ Exists until this is merged:
+
+    https://github.com/SeleniumHQ/selenium/pull/3452
+
+    """
+    def wrapper(*args, **kwargs):
+        self = args[0]
+        try:
+            return func(*args, **kwargs)
+        except selenium.common.exceptions.WebDriverException:
+            try:
+                self.dr.close()
+            except (NameError, AttributeError):
+                pass
+    return wrapper
 
 class FSUBot(object):
     TIME_FORMAT = r'%Y-%m-%d-%H-%M-%S'
     FSU_LOGIN_URL = 'https://cas.fsu.edu/cas/login?service=https://my.fsu.edu'
 
-    def __init__(self, driver=None, fsuid=None, fsupw=None, cli_args=False, auto_login=True, browser={'title': 'firefox', 'path': './'}, description='Bot made using FSU Bot library.'):
-        self.SLEEP_TIME = 1.5
-
-        if cli_args or (not fsuid and not fsupw):
-            parser = FSUBot.ArgParser(description=description)
-            self._args = parser.parse()
-
-        if cli_args and hasattr(self, '_args') and self._args.fsuid:
-            self.fsuid = self._args.fsuid
-        elif isinstance(fsuid, str):
-            self.fsuid = fsuid
+    def __init__(self, *args, **kwargs):
+        if not kwargs.get('use_cli'):
+            self.setup(*args, **kwargs)
         else:
-            self.fsuid = input('FSU-ID: ')
+            print("Parser provided as `self.arg_parser`. Automatic arguments "
+                  "for ID and password have been added.\nCall `FSUBot.setup` "
+                  "with the parsed arguments dictionary.")
+            self.arg_parser = FSUBot.ArgParser()
 
-        if cli_args and hasattr(self, '_args') and self._args.fsupw:
-            self.fsupw = self._args.fsupw
-        elif isinstance(fsupw, str):
-            self.fsupw = fsupw
-        else:
-            self.fsupw = getpass.getpass()
+    @selenium_safe_run
+    def setup(self, *args, **kwargs):
+        driver = kwargs.get('driver')
+        executable_path = kwargs.get('executable_path')
+        fsuid = kwargs.get('fsuid')
+        fsupw = kwargs.get('fsupw')
+        use_cli = kwargs.get('use_cli')
+        auto_login = kwargs.get('auto_login', True)
+        browser = kwargs.get('browser', 'chrome')
+        description = kwargs.get('description', 'An FSU Bot.')
+
+        self.VERBOSE = kwargs.get('verbose', True)
+        self.SLEEP_TIME = int(kwargs.get('sleep_time', 1.5))
+
+        self.fsuid = fsuid if isinstance(fsuid, str) else input('FSU-ID: ')
+        self.fsupw = fsupw if isinstance(fsupw, str) else getpass.getpass()
 
         if not driver:
             try:
-                if browser['title'].lower() == 'firefox':
-                    binary = FirefoxBinary(
-                        FSUBot._make_path_relative(browser['path'])
-                    )
-                    self.dr = webdriver.Firefox(firefox_binary=binary)
-                elif browser['title'].lower() == 'chrome':
-                    self.dr = webdriver.Chrome(
-                        FSUBot._make_path_relative(browser['path'])
-                    )
-            except (AttributeError, selenium.common.exceptions.WebDriverException, AttributeError) as e:
-                print("ERROR \"{}\": Likely no driver was found.".format(str(e).strip()))
+                if browser.lower() == 'firefox':
+                    if executable_path:
+                        self.dr = webdriver.Firefox(
+                            firefox_binary=FirefoxBinary(executable_path)
+                        )
+                    else:
+                        self.dr = webdriver.Firefox()
+                elif browser.lower() == 'chrome':
+                    if executable_path:
+                        self.dr = webdriver.Chrome(
+                            executable_path=executable_path
+                        )
+                    else:
+                        self.dr = webdriver.Chrome()
+            except WebDriverException as e:
+                print("\"{}\": Bailing.".format(str(e).strip()))
                 sys.exit()
-        else:
+        elif driver:
             self.dr = driver
+        else:
+            raise RuntimeError("Bailing, unable to instantiate a webdriver.")
 
         self.wait = ui.WebDriverWait(self.dr, 10)
+        if auto_login: self.login_to_fsu()
 
-        if auto_login:
-            self.login_to_fsu()
-
+    @selenium_safe_run
     def login_to_fsu(self):
         self.dr.get(FSUBot.FSU_LOGIN_URL)
         self.wait.until(lambda driver: driver.find_element_by_xpath(
             '//*[@id="fm2"]/table/tbody/tr[2]/td[3]/input'
         ))
 
-        print("Entering login credentials...")
+        FSUBot.vprint("Entering login credentials...")
         username = self.dr.find_elements_by_class_name("loginInput")[0]
         password = self.dr.find_elements_by_class_name("loginInput")[1]
         username.send_keys(self.fsuid)
         password.send_keys(self.fsupw)
 
-        print("Attempting to login...")
+        FSUBot.vprint("Attempting to login...")
         login_button = '#fm2 > table > tbody > tr:nth-child(2) > td:nth-child(6) > input'
         self.dr.find_elements_by_css_selector(login_button)[0].click()
         self.wait.until(lambda driver: driver.find_element_by_xpath(
             '//*[@id="portlet-wrapper-stu_myCourses_WAR_stu_myCourses"]/div[1]/div[1]'
         ))
+        FSUBot.vprint("Successfully logged into MyFSU.")
 
+    @selenium_safe_run
     def navigate(self, filename=None, list_key=None, json_list=None):
         """
         :filename: relative to script filename of json file containing
@@ -106,9 +137,9 @@ class FSUBot(object):
         else:
             raise RuntimeError('No JSON list of navigation points provided.')
 
+    @selenium_safe_run
     def _navigate(self, title=None, xpath=None, css_selector=None):
-        if title:
-            print("Navigating to " + title + "...")
+        if title: FSUBot.vprint("Navigating to " + title + "...")
 
         if xpath:
             elem = self.dr.find_elements_by_xpath(xpath)[0]
@@ -118,51 +149,35 @@ class FSUBot(object):
             raise Exception("Unable to navigate without xpath or " \
                             "css selector.")
         elem.click()
+        FSUBot.vprint("Navigation succeeded.")
 
-        if title:
-            print("Navigation succeeded.")
-
+    @selenium_safe_run
     def _focus_iframe(self, title, xpath=None, css_selector=None):
-        if title:
-            print("Focusing on " + title + "'s iFrame...")
+        if title: FSUBot.vprint("Focusing on " + title + "'s iFrame...")
+
         if xpath:
             frame = self.dr.find_elements_by_xpath(xpath)[0]
         elif css_selector:
             frame = self.dr.find_elements_by_css_selector(css_selector)[0]
         self.dr.switch_to.frame(frame)
-        if title:
-            print("Frame-switch succeeded.")
 
+        FSUBot.vprint("Frame-switch succeeded.")
 
-    def main_loop(self):
-        pass
+    @staticmethod
+    def vprint(*args, **kwargs):
+        if self.VERBOSE:
+            print(*args, **kwargs)
 
     @property
     def page_source(self):
         return self.dr.page_source.encode('utf-8')
 
-    def element_exists(self, xpath):
-        try:
-            return bool(self.dr.find_elements_by_xpath(xpath))
-        except:
-            return False
-
-    @staticmethod
-    def _make_path_relative(relative_path):
-        """
-        :param relative_path: accepts a relative path and makes it
-            absolute with respect to the script's location
-        """
-        return str(
-            os.path.join(
-                os.path.abspath(os.path.dirname(sys.argv[0])),
-                relative_path
-            )
-        )
-
-
     class ArgParser(argparse.ArgumentParser):
-        def __init__(self, *args, **kwargs):
+        def __init__(self, *args, cli_args=None, **kwargs):
+            """
+            :param cli_args: method to add additional commandline arguments
+            :type cli_args: list of lists containing add_argument parameters as dicts
+            """
             super().__init__(*args, **kwargs)
             self.add_argument('-f', '--fsu-id', dest="fsuid",
                               help='Username for the student\'s MyFSU account.',
@@ -170,27 +185,27 @@ class FSUBot(object):
             self.add_argument('-p', '--password', dest="fsupw",
                               help='Password for the student\'s MyFSU account.',
                               required=False)
+            self._parse_args = lambda p: argparse.ArgumentParser.parse_args(p)
 
-        def parse(self, *args, **kwargs):
-            args = self.parse_args(*args, **kwargs)
+        def parse_args(self, *args, **kwargs):
+            _args = self._parse_args(self, *args, **kwargs)
 
-            if args.fsuid and not args.fsupw:
+            if _args.fsuid and not _args.fsupw:
                 parser.error('MyFSU ID given, but no password specified.')
-            elif not args.fsuid and args.fsupw:
+            elif not _args.fsuid and _args.fsupw:
                 parser.error('MyFSU password given, but no ID specified.')
 
-            return args
+            d = {}
+            for k, v in _args._get_kwargs():
+                d[k] = v
+
+            return d
 
 
 
-def _main(nav_list_json=None, main_loop=None):
-    """
-    :param nav_list: list of
-    :type nav_list: list
-
-    """
-    fsu_dr = FSUBot(browser={'title':'chrome', 'path':'./chromedriver'})
-    fsu_dr.login_to_fsu()
+def _main():
+    fsu_dr = FSUBot(use_cli=True)
+    fsu_dr.setup(**fsu_dr.arg_parser.parse_args())
 
 
 if __name__ == "__main__":
