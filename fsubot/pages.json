@@ -1,5 +1,5 @@
 {
-    "setup": [
+    "pages": [
         {
             "title": "",
             "iframe": false,
@@ -35,14 +35,6 @@
             "css_selector": ""
         },
 
-        {
-            "title": "",
-            "iframe": false,
-            "xpath": "",
-            "css_selector": ""
-        }
-    ],
-    "main_loop": [
         {
             "title": "",
             "iframe": false,

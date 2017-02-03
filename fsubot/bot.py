@@ -45,9 +45,9 @@ class FSUBot(object):
                 self.initialize(*args, **kwargs)
         else:
             print("Parser provided as `self.arg_parser`. Automatic arguments "
-                  "for ID and password have been added.\nCall `FSUBot.setup` "
-                  "with the parsed arguments dictionary.")
-            self.arg_parser = FSUBot.ArgParser()
+                  "for ID, password, browser, and executable-path have been "
+                  "added.\nCall `FSUBot.initialize` and pass the unpacked "
+                  "return value from self.arg_parser.parse_args.")
 
     @selenium_safe_run
     def initialize(self, *args, **kwargs):
@@ -60,6 +60,13 @@ class FSUBot(object):
         browser = str(kwargs.get('browser', 'chrome'))
         description = str(kwargs.get('description', 'An FSU Bot.'))
 
+        FIREFOX_NAMES = '\t'.join(
+            ['firefox', 'gecko', 'geckodriver', 'firefoxdriver']
+        )
+        CHROME_NAMES = '\t'.join(
+            ['chrome', 'chromedriver', 'googlechrome']
+        )
+
         self.VERBOSE = kwargs.get('verbose', True)
         self.SLEEP_TIME = int(kwargs.get('sleep_time', 1.5))
 
@@ -68,25 +75,26 @@ class FSUBot(object):
 
         if not driver:
             try:
-                if browser.lower() == 'firefox':
+                if browser in FIREFOX_NAMES:
                     if executable_path:
                         self.dr = webdriver.Firefox(
                             firefox_binary=FirefoxBinary(executable_path)
                         )
                     else:
                         self.dr = webdriver.Firefox()
-                else:  # browser.lower() == 'chrome':
+                elif browser in CHROME_NAMES:
                     if executable_path:
                         self.dr = webdriver.Chrome(
                             executable_path=executable_path
                         )
                     else:
                         self.dr = webdriver.Chrome()
+                else:
+                    raise RuntimeError("Bailing, no webdriver identifying name provided.")
             except WebDriverException as e:
                 print("\"{}\": Bailing.".format(str(e).strip()))
                 sys.exit()
         elif driver:
-            print("else")
             self.dr = driver
         else:
             raise RuntimeError("Bailing, unable to instantiate a webdriver.")
@@ -218,7 +226,7 @@ class FSUBot(object):
 
 def _main():
     fsu_dr = FSUBot(use_cli=True)
-    fsu_dr.initialize(**fsu_dr.arg_parser.parse_args())
+    fsu_dr.initialize()
 
 
 if __name__ == "__main__":
