@@ -163,7 +163,7 @@ class FSUBot(object):
 
         FSUBot.vprint("Frame-switch succeeded.")
 
-    def vprint(*args, **kwargs):
+    def vprint(self, *args, **kwargs):
         if self.VERBOSE:
             print(*args, **kwargs)
 
