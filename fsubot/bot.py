@@ -133,7 +133,8 @@ class FSUBot(object):
         :param list_key: key for list containing pages within json
         """
         if filename and list_key:
-            filename = FSUBot._make_path_relative(filename)
+            if filename[0] != '/':
+                filename = FSUBot._make_path_relative(filename)
             with open(filename) as f:
                 json_list = json.load(f)[list_key]
 
@@ -181,6 +182,18 @@ class FSUBot(object):
     def vprint(self, *args, **kwargs):
         if self.VERBOSE:
             print(*args, **kwargs)
+
+    @staticmethod
+    def _make_path_relative(relative_path):
+        """
+        :param relative_path: accepts a relative path and makes it
+            absolute with respect to the script's location
+        """
+        return str(
+            os.path.join(
+                os.path.abspath(os.path.dirname(sys.argv[0])),
+                relative_path
+            )
 
     @property
     def page_source(self):
