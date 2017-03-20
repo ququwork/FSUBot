@@ -48,7 +48,7 @@ fsu_dr = FSUBot(use_cli=True)
 Then, you can pass in arguments like so:
 
 ```bash
-$ python fsubot/bot.py --fsu-id abc13 --fsu-pw hunter2 --browser chrome --executable-path drivers/chromedriver
+$ python fsubot/bot.py --fsu-id abc13 --password hunter2 --browser chrome --executable-path drivers/chromedriver
 ```
 
 ### Examples
