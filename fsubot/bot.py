@@ -31,95 +31,106 @@ def selenium_safe_run(func):
                 sys.exit()
     return wrapper
 
+
 class FSUBot(object):
     TIME_FORMAT = r'%Y-%m-%d-%H-%M-%S'
     FSU_LOGIN_URL = 'https://cas.fsu.edu/cas/login?service=https://my.fsu.edu'
+    DEFAULT_WEBDRIVER_WAIT_TIME = 10
 
     def __init__(self, *args, **kwargs):
+        """
+        :param use_cli: Decision to look for/make use of provided CLI arguments.
+        :param modify_arg_parser: Instantiate a bot, but do not initialize
+            immediately. This allows developer to add custom CLI arguments
+            (which are then passed to initialize).
+        """
         self.arg_parser = FSUBot.ArgParser()
 
-        if not kwargs.get('modify_arg_parser'):
-            if kwargs.get('use_cli'):
-                self.initialize(*args, **self.arg_parser.parse_args(), **kwargs)
-            else:
-                self.initialize(*args, **kwargs)
-        else:
+        if kwargs.get('modify_arg_parser'):
             print("Parser provided as `self.arg_parser`. Automatic arguments "
                   "for ID, password, browser, and executable-path have been "
                   "added.\nCall `FSUBot.initialize` and pass the unpacked "
                   "return value from self.arg_parser.parse_args.")
+        else:
+            if kwargs.get('use_cli'):
+                self.initialize(*args, **self.arg_parser.parse_args(), **kwargs)
+            else:
+                self.initialize(*args, **kwargs)
 
     @selenium_safe_run
     def initialize(self, *args, **kwargs):
-        driver = kwargs.get('driver', None)
-        executable_path = str(kwargs.get('executable_path'))
-        fsuid = str(kwargs.get('fsuid', None))
-        fsupw = str(kwargs.get('fsupw', None))
-        use_cli = bool(kwargs.get('use_cli', False))
-        auto_login = kwargs.get('auto_login', True)
-        browser = str(kwargs.get('browser', 'chrome'))
-        description = str(kwargs.get('description', 'An FSU Bot.'))
-
-        FIREFOX_NAMES = '\t'.join(
-            ['firefox', 'gecko', 'geckodriver', 'firefoxdriver']
-        )
-        CHROME_NAMES = '\t'.join(
-            ['chrome', 'chromedriver', 'googlechrome']
-        )
-
-        self.VERBOSE = kwargs.get('verbose', True)
+        """
+        :param driver: Instance of selenium driver already instantiated.
+        :param executable_path: Path to the driver/executable to instantiate
+            the selenium driver with.
+        :param fsuid: FSU-ID to use when logging into MyFSU.
+        :param password: Password to use when logging into MyFSU.
+        :param use_cli: Decision to look for/make use of provided CLI arguments.
+        :param auto_login: Decision to automatically login to MyFSU.
+        :param browser: Name of actual browser ('chrome' or 'firefox')
+        :param description: Description associated with the bot.
+        :param verbose: Decision to print more verbose logging messages.
+        :param sleep_time: Adjust based on connection speed, time between actions.
+        """
+        driver          = kwargs.get('driver', None)
+        executable_path = kwargs.get('executable_path')
+        fsuid           = kwargs.get('fsuid')
+        password        = kwargs.get('password')
+        use_cli         = bool(kwargs.get('use_cli', False))
+        auto_login      = kwargs.get('auto_login', True)
+        browser         = kwargs.get('browser', 'chrome')
+        description     = kwargs.get('description', 'An FSU Bot.')
+        self.VERBOSE    = kwargs.get('verbose', True)
         self.SLEEP_TIME = int(kwargs.get('sleep_time', 1.5))
 
-        self.fsuid = fsuid if isinstance(fsuid, str) and fsuid != 'None' else input('FSU-ID: ')
-        self.fsupw = fsupw if isinstance(fsupw, str) and fsupw != 'None' else getpass.getpass()
+        self.fsuid      = fsuid    if isinstance(fsuid, str)    and fsuid    else input('FSU-ID: ')
+        self.password   = password if isinstance(password, str) and password else getpass.getpass()
 
-        if not driver:
+        FIREFOX_NAMES = ('firefox', 'gecko', 'geckodriver', 'firefoxdriver')
+        CHROME_NAMES  = ('chrome', 'chromedriver', 'googlechrome')
+
+        if driver:
+            self.dr = driver
+        else:
             try:
                 if browser in FIREFOX_NAMES:
-                    if executable_path:
-                        self.dr = webdriver.Firefox(
-                            firefox_binary=FirefoxBinary(executable_path)
-                        )
-                    else:
-                        self.dr = webdriver.Firefox()
+                    self.dr = webdriver.Firefox(
+                        firefox_binary=FirefoxBinary(executable_path)
+                    ) if executable_path else webdriver.Firefox()
                 elif browser in CHROME_NAMES:
-                    if executable_path:
-                        self.dr = webdriver.Chrome(
-                            executable_path=executable_path
-                        )
-                    else:
-                        self.dr = webdriver.Chrome()
+                    self.dr = webdriver.Chrome(
+                        executable_path=executable_path
+                    ) if executable_path else webdriver.Chrome()
                 else:
-                    raise RuntimeError("Bailing, no webdriver identifying name provided.")
+                    raise RuntimeError("\"No valid webdriver-identifying name provided\", bailing.")
             except WebDriverException as e:
                 print("\"{}\": Bailing.".format(str(e).strip()))
                 sys.exit()
-        elif driver:
-            self.dr = driver
-        else:
-            raise RuntimeError("Bailing, unable to instantiate a webdriver.")
 
-        self.wait = ui.WebDriverWait(self.dr, 10)
-        if auto_login: self.login_to_fsu()
+        self.WAIT = ui.WebDriverWait(self.dr, FSUBot.DEFAULT_WEBDRIVER_WAIT_TIME)
+
+        if auto_login:
+            self.login_to_fsu()
 
     @selenium_safe_run
     def login_to_fsu(self):
+        self.vprint("Navigating to login page...")
         self.dr.get(FSUBot.FSU_LOGIN_URL)
-        self.wait.until(lambda driver: driver.find_element_by_xpath(
-            '//*[@id="fm2"]/table/tbody/tr[2]/td[3]/input'
+        self.WAIT.until(lambda driver: driver.find_element_by_xpath(
+            '//*[@id="username"]'
         ))
 
         self.vprint("Entering login credentials...")
-        username = self.dr.find_elements_by_class_name("loginInput")[0]
-        password = self.dr.find_elements_by_class_name("loginInput")[1]
+        username = self.dr.find_elements_by_id("username")[0]
+        password = self.dr.find_elements_by_id("password")[0]
         username.send_keys(self.fsuid)
-        password.send_keys(self.fsupw)
+        password.send_keys(self.password)
 
-        self.vprint("Attempting to login...")
-        login_button = '#fm2 > table > tbody > tr:nth-child(2) > td:nth-child(6) > input'
+        login_button = '#fsu-login-button'
         self.dr.find_elements_by_css_selector(login_button)[0].click()
-        self.wait.until(lambda driver: driver.find_element_by_xpath(
-            '//*[@id="portlet-wrapper-stu_myCourses_WAR_stu_myCourses"]/div[1]/div[1]'
+        self.vprint("Clicked login button.")
+        self.WAIT.until(lambda driver: driver.find_element_by_xpath(
+            '//*[@id="fsuMyCoursesCurrentTab"]/a'
         ))
         self.vprint("Successfully logged into MyFSU.")
 
@@ -155,7 +166,8 @@ class FSUBot(object):
 
     @selenium_safe_run
     def _click(self, title=None, xpath=None, css_selector=None):
-        if title: self.vprint("Locating " + title + "...")
+        if title:
+            self.vprint("Locating " + title + "...")
 
         if xpath:
             elem = self.dr.find_elements_by_xpath(xpath)[0]
@@ -169,14 +181,18 @@ class FSUBot(object):
 
     @selenium_safe_run
     def _focus_iframe(self, title, xpath=None, css_selector=None):
-        if title: self.vprint("Focusing on " + title + "'s iFrame...")
+        if title:
+            self.vprint("Focusing on " + title + "'s iFrame...")
 
         if xpath:
             frame = self.dr.find_elements_by_xpath(xpath)[0]
         elif css_selector:
             frame = self.dr.find_elements_by_css_selector(css_selector)[0]
-        self.dr.switch_to.frame(frame)
+        else:
+            raise Exception("Unable to locate element without xpath or " \
+                            "css selector.")
 
+        self.dr.switch_to.frame(frame)
         self.vprint("Frame-switch succeeded.")
 
     def vprint(self, *args, **kwargs):
@@ -210,7 +226,7 @@ class FSUBot(object):
             self.add_argument('-f', '--fsu-id', dest="fsuid",
                               help='Username for the student\'s MyFSU account.',
                               required=False)
-            self.add_argument('-p', '--password', dest="fsupw",
+            self.add_argument('-p', '--password', dest="password",
                               help='Password for the student\'s MyFSU account.',
                               required=False)
             self.add_argument('-b', '--browser', dest="browser",
@@ -225,22 +241,16 @@ class FSUBot(object):
         def parse_args(self, *args, **kwargs):
             _args = self._parse_args(self, *args, **kwargs)
 
-            if _args.fsuid and not _args.fsupw:
+            if _args.fsuid and not _args.password:
                 parser.error('MyFSU ID given, but no password specified.')
-            elif not _args.fsuid and _args.fsupw:
+            elif not _args.fsuid and _args.password:
                 parser.error('MyFSU password given, but no ID specified.')
 
-            d = {}
-            for k, v in _args._get_kwargs():
-                d[k] = v
-
-            return d
-
+            return dict(_args._get_kwargs())
 
 
 def _main():
     fsu_dr = FSUBot(use_cli=True)
-    fsu_dr.initialize()
 
 
 if __name__ == "__main__":
